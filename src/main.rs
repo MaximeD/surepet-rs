@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 
+use crate::api::devices::devices;
 use crate::api::pets::pets;
 use crate::entities::shared::Information;
 
@@ -17,6 +18,8 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// List devices
+    Devices {},
     /// List pets
     Pets {},
 }
@@ -26,6 +29,11 @@ async fn main() {
     let args = Cli::parse();
 
     match args.command {
+        Commands::Devices {} => {
+            for device in devices().await {
+                println!("{}", device.information());
+            }
+        }
         Commands::Pets {} => {
             for pet in pets().await {
                 println!("{}", pet.information());
