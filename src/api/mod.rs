@@ -1,5 +1,6 @@
 use reqwest::Response;
 
+pub mod devices;
 pub mod login;
 pub mod pets;
 

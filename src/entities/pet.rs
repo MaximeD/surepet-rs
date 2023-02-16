@@ -1,8 +1,8 @@
 #[cfg(not(test))]
 use chrono::Local;
-use chrono::{DateTime, FixedOffset};
 #[cfg(not(test))]
 use chrono::SecondsFormat;
+use chrono::{DateTime, FixedOffset};
 use dyn_partial_eq::*;
 use humantime::format_duration;
 
