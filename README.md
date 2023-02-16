@@ -27,3 +27,17 @@ In order to authenticate to the API, please set the two following environment va
 🏡 Arlene is outside since 1days 5h 50m 12s
 🏠 Garfield is inside since 1h 27m 8s
 ```
+
+## Run tests
+
+```shell
+> make test
+```
+
+## Create a binary
+
+```shell
+> make release
+```
+
+The binary is located in `target/release/surepet-rs`.
