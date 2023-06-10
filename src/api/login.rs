@@ -71,33 +71,57 @@ mod tests {
             .with_status(200)
             .with_body(r#"{"data": {"token": "some_token"}}"#)
             .create();
-        env::set_var("SUREPET_EMAIL", "some_email@example.com");
-        env::set_var("SUREPET_PASSWORD", "password");
-        assert_eq!(tokio_test::block_on(login()), "some_token");
+        temp_env::with_vars(
+            [
+                ("SUREPET_EMAIL", Some("some_email@example.com")),
+                ("SUREPET_PASSWORD", Some("password")),
+            ],
+            || {
+                assert_eq!(tokio_test::block_on(login()), "some_token");
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "Please set `SUREPET_EMAIL` env variable")]
     fn it_panics_when_environment_variables_are_missing() {
-        env::remove_var("SUREPET_EMAIL");
-        tokio_test::block_on(login());
+        temp_env::with_vars(
+            [
+                ("SUREPET_EMAIL", None::<String>),
+            ],
+            || {
+                tokio_test::block_on(login());
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "Invalid credentials")]
     fn it_panics_when_credentials_are_invalid() {
         let _m = mock("POST", LOGIN_PATH).with_status(401).create();
-        env::set_var("SUREPET_EMAIL", "some_email@example.com");
-        env::set_var("SUREPET_PASSWORD", "password");
-        tokio_test::block_on(login());
+        temp_env::with_vars(
+            [
+                ("SUREPET_EMAIL", Some("some_email@example.com")),
+                ("SUREPET_PASSWORD", Some("password")),
+            ],
+            || {
+                tokio_test::block_on(login());
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "Uh oh! Something unexpected happened.")]
     fn it_panics_when_response_is_not_handled() {
         let _m = mock("POST", LOGIN_PATH).with_status(500).create();
-        env::set_var("SUREPET_EMAIL", "some_email@example.com");
-        env::set_var("SUREPET_PASSWORD", "invalid password");
-        tokio_test::block_on(login());
+        temp_env::with_vars(
+            [
+                ("SUREPET_EMAIL", Some("some_email@example.com")),
+                ("SUREPET_PASSWORD", Some("password")),
+            ],
+            || {
+                tokio_test::block_on(login());
+            }
+        );
     }
 }
