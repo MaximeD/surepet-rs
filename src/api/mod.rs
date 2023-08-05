@@ -25,7 +25,10 @@ async fn get_resources(path: &str) -> Response {
     #[cfg(test)]
     let url = format!("{}{}", &mockito::server_url(), path);
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("surepet-cli")
+        .build()
+        .unwrap();
     let response = client
         .get(url)
         .header("AUTHORIZATION", format!("Bearer {}", bearer_token))
