@@ -37,7 +37,10 @@ pub async fn login() -> String {
     #[cfg(test)]
     let url = format!("{}{}", &mockito::server_url(), LOGIN_PATH);
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("surepet-cli")
+        .build()
+        .unwrap();
     let response = client.post(url).json(&payload).send().await.unwrap();
 
     match response.status() {
