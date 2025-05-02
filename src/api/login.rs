@@ -35,7 +35,7 @@ pub async fn login() -> String {
     let url = format!("{}{}", BASE_URL, LOGIN_PATH);
 
     #[cfg(test)]
-    let url = format!("{}{}", &mockito::server_url(), LOGIN_PATH);
+    let url = format!("{}{}", std::env::var("MOCKITO_URL").unwrap(), LOGIN_PATH);
 
     let client = reqwest::Client::builder()
         .user_agent("surepet-cli")
@@ -66,34 +66,41 @@ mod tests {
     #[cfg(test)]
     use super::*;
     #[cfg(test)]
-    use mockito::mock;
+    use mockito::Server;
 
     #[test]
     fn it_returns_the_token() {
-        let _m = mock("POST", LOGIN_PATH)
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("POST", LOGIN_PATH)
             .with_status(200)
             .with_body(r#"{"data": {"token": "some_token"}}"#)
             .create();
-        temp_env::with_vars(
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let result = temp_env::with_vars(
             [
                 ("SUREPET_EMAIL", Some("some_email@example.com")),
                 ("SUREPET_PASSWORD", Some("password")),
+                ("MOCKITO_URL", Some(&url)),
             ],
             || {
-                assert_eq!(tokio_test::block_on(login()), "some_token");
+                rt.block_on(login())
             }
         );
+        assert_eq!(result, "some_token");
     }
 
     #[test]
     #[should_panic(expected = "Please set `SUREPET_EMAIL` env variable")]
     fn it_panics_when_environment_variables_are_missing() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
         temp_env::with_vars(
             [
                 ("SUREPET_EMAIL", None::<String>),
             ],
             || {
-                tokio_test::block_on(login());
+                rt.block_on(login());
             }
         );
     }
@@ -101,14 +108,19 @@ mod tests {
     #[test]
     #[should_panic(expected = "Invalid credentials")]
     fn it_panics_when_credentials_are_invalid() {
-        let _m = mock("POST", LOGIN_PATH).with_status(401).create();
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("POST", LOGIN_PATH).with_status(401).create();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
         temp_env::with_vars(
             [
                 ("SUREPET_EMAIL", Some("some_email@example.com")),
                 ("SUREPET_PASSWORD", Some("password")),
+                ("MOCKITO_URL", Some(&url)),
             ],
             || {
-                tokio_test::block_on(login());
+                rt.block_on(login());
             }
         );
     }
@@ -116,14 +128,19 @@ mod tests {
     #[test]
     #[should_panic(expected = "Uh oh! Something unexpected happened.")]
     fn it_panics_when_response_is_not_handled() {
-        let _m = mock("POST", LOGIN_PATH).with_status(500).create();
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("POST", LOGIN_PATH).with_status(500).create();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
         temp_env::with_vars(
             [
                 ("SUREPET_EMAIL", Some("some_email@example.com")),
                 ("SUREPET_PASSWORD", Some("password")),
+                ("MOCKITO_URL", Some(&url)),
             ],
             || {
-                tokio_test::block_on(login());
+                rt.block_on(login());
             }
         );
     }

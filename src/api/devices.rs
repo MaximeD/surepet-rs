@@ -63,11 +63,13 @@ mod tests {
     #[cfg(test)]
     use super::*;
     #[cfg(test)]
-    use mockito::mock;
+    use mockito::Server;
 
     #[test]
     fn it_returns_devices_information() {
-        let _m = mock("GET", DEVICES_PATH)
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("GET", DEVICES_PATH)
             .with_status(200)
             .with_body(
                 r#"
@@ -113,13 +115,23 @@ mod tests {
             }),
         ];
 
-        assert_eq!(tokio_test::block_on(devices()), expected);
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        temp_env::with_vars(
+            [
+                ("MOCKITO_URL", Some(&url)),
+            ],
+            || {
+                assert_eq!(rt.block_on(devices()), expected);
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "This device is unknown!")]
     fn it_panics_when_device_is_unknown() {
-        let _m = mock("GET", DEVICES_PATH)
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("GET", DEVICES_PATH)
             .with_status(200)
             .with_body(
                 r#"
@@ -139,13 +151,32 @@ mod tests {
             )
             .create();
 
-        tokio_test::block_on(devices());
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        temp_env::with_vars(
+            [
+                ("MOCKITO_URL", Some(&url)),
+            ],
+            || {
+                rt.block_on(devices());
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "Uh oh! Something unexpected happened.")]
     fn it_panics_when_response_is_not_handled() {
-        let _m = mock("GET", DEVICES_PATH).with_status(500).create();
-        tokio_test::block_on(devices());
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("GET", DEVICES_PATH).with_status(500).create();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        temp_env::with_vars(
+            [
+                ("MOCKITO_URL", Some(&url)),
+            ],
+            || {
+                rt.block_on(devices());
+            }
+        );
     }
 }

@@ -49,11 +49,13 @@ mod tests {
     #[cfg(test)]
     use super::*;
     #[cfg(test)]
-    use mockito::mock;
+    use mockito::Server;
 
     #[test]
     fn it_returns_pet_information() {
-        let _m = mock("GET", PETS_PATH)
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("GET", PETS_PATH)
             .with_status(200)
             .with_body(
                 r#"
@@ -78,31 +80,51 @@ mod tests {
                 "#,
             )
             .create();
-        assert_eq!(
-            tokio_test::block_on(pets()),
-            vec![
-                Pet {
-                    name: "Arlene".to_string(),
-                    position: 1,
-                    position_since: "2023-02-05T14:12:57+00:00"
-                        .parse::<DateTime<FixedOffset>>()
-                        .unwrap()
-                },
-                Pet {
-                    name: "Garfield".to_string(),
-                    position: 2,
-                    position_since: "2023-02-05T16:09:52+00:00"
-                        .parse::<DateTime<FixedOffset>>()
-                        .unwrap()
-                }
-            ]
-        )
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        temp_env::with_vars(
+            [
+                ("MOCKITO_URL", Some(&url)),
+            ],
+            || {
+                assert_eq!(
+                    rt.block_on(pets()),
+                    vec![
+                        Pet {
+                            name: "Arlene".to_string(),
+                            position: 1,
+                            position_since: "2023-02-05T14:12:57+00:00"
+                                .parse::<DateTime<FixedOffset>>()
+                                .unwrap()
+                        },
+                        Pet {
+                            name: "Garfield".to_string(),
+                            position: 2,
+                            position_since: "2023-02-05T16:09:52+00:00"
+                                .parse::<DateTime<FixedOffset>>()
+                                .unwrap()
+                        }
+                    ]
+                )
+            }
+        );
     }
 
     #[test]
     #[should_panic(expected = "Uh oh! Something unexpected happened.")]
     fn it_panics_when_response_is_not_handled() {
-        let _m = mock("GET", PETS_PATH).with_status(500).create();
-        tokio_test::block_on(pets());
+        let mut server = Server::new();
+        let url = server.url();
+        let _m = server.mock("GET", PETS_PATH).with_status(500).create();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        temp_env::with_vars(
+            [
+                ("MOCKITO_URL", Some(&url)),
+            ],
+            || {
+                rt.block_on(pets());
+            }
+        );
     }
 }
